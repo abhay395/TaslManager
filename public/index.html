@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div class="todo-container">
+      <h1>To-Do List</h1>
+      <!-- <input type="text">
+        <button>search</button> -->
+      <div class="todo-input">
+        <br />
+        <input type="text" id="todo-input" placeholder="Add a new task" />
+        <button id="add-todo">Add Task</button>
+      </div>
+      <div style="margin-top: 5px" class="Filter-Btn">
+        <button data-type="all">All</button>
+        <button data-type="complete">Completed</button>
+        <button data-type="incomplete">Incompleted</button>
+      </div>
+      <div style="margin-top: 5px;">
+        <input type="text" class="search-input" placeholder="Search task" style="width: 90%; height: 35px;border:1px solid rgba(0, 0, 0, 0.12);border-radius: 5px; padding: 5px; font-size: 16px;">
+      </div>
+      <ul id="todo-list">
+        <!-- <li>
+          <input type="checkbox" />
+          <input type="text" class="item-input" value="45" disabled/>
+          <select class="priority-select" >
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <button class="edit-btn">Edite</button>
+          <button class="delete-btn">Delete</button>
+        </li> -->`
+      </ul>
+    </div>
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
