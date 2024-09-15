@@ -25,7 +25,7 @@ app.use("/api/v1/tasks", routes);
 const PORT = process.env.PORT;
 const start = async () => {
   try {
-    await connectDB(PORT);
+    await connectDB(process.env.MONGO_URI);
     app.listen(port, () =>
       console.log(`Example app listening `)
     );
