@@ -22,12 +22,12 @@ app.use("/api/v1/tasks", routes);
 // app.get('/api/v1/tasks/:id) - Get single task
 // app.patch('/api/v1/tasks/:id) - Update task
 // app.delete('/api/v1/tasks/:id) - Delete task
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 const start = async () => {
   try {
     await connectDB(PORT);
     app.listen(port, () =>
-      console.log(`Example app listening on http://localhost:${port}`)
+      console.log(`Example app listening `)
     );
   } catch (error) {
     console.log(error);
