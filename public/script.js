@@ -1,42 +1,52 @@
+// Query Selectors
 let addButtons = document.querySelector("#add-todo");
 let todoList = document.querySelector("#todo-list");
 let TodoInput = document.querySelector("#todo-input");
-let searchButton = document.querySelector(".search-btn");
 let searchInput = document.querySelector(".search-input");
-// const createTodoItem =require('./Ui.js');
-// There we create a add todo functionalty;
+
+// Event Listeners
+
 document.addEventListener("DOMContentLoaded", LoadTodos);
-
-
-
 addButtons.addEventListener("click", addTodo);
+TodoInput.addEventListener("keydown", (e) => e.key == "Enter" && addTodo());
+searchInput.addEventListener("input", searchInputFunction);
+
+// Event Handlers
+// Add Todo
 async function addTodo(e) {
-  let value = TodoInput.value.trim();
-  
-  if (value == "") {
+  let inputValue = TodoInput.value.trim();
+
+  if (inputValue == "") {
     alert("Please Enter a Value");
     return;
   }
   try {
-   const data = await axios.get('https://dummyjson.com/test')
-   console.log(data);
-    let listItem = createTodoItem(value);
+    const data = await axios.post("/api/v1/tasks", {
+      value: `${inputValue}`,
+      completed: false,
+      priority: "medium",
+    });
+    const { value, completed, priority, _id } = data.data;
+    // console.log(value);
+    let listItem = createTodoItem(
+      value,
+      completed === true ? "complete" : "incomplete",
+      priority,
+      _id
+    );
 
-  todoList.appendChild(listItem);
-  TodoInput.value = "";
-  saveTodos(); 
+    todoList.appendChild(listItem);
+    TodoInput.value = "";
   } catch (error) {
     console.log(error);
   }
   // getTodos();
 }
 
-
-
-function createTodoItem(value, status = "incomplete", priority = "medium") {
+// Create Todo
+function createTodoItem(value, status = "incomplete", priority = "medium", id) {
   let listItem = document.createElement("li");
   listItem.classList.add(status);
-
   listItem.innerHTML = ` <input type="checkbox" ${
     status === "complete" ? "checked" : ""
   }>
@@ -52,72 +62,108 @@ function createTodoItem(value, status = "incomplete", priority = "medium") {
     </select>
   <button class="edit-btn">Edite</button>
   <button class="delete-btn">Delete</button>`;
-
-  let checkbox = listItem.querySelector("input[type=checkbox]");
-  let editeButton = listItem.querySelector(".edit-btn");
-  let deletButton = listItem.querySelector(".delete-btn");
-  let inputFieldInList = listItem.querySelector("input[type=text]");
-  let prioritySelect = listItem.querySelector(".priority-select");
-
-  // Completed or not Completed Functionality
-  checkbox.addEventListener("click", (e) => {
-    listItem.classList.toggle("complete", checkbox.checked);
-    listItem.classList.toggle("incomplete", !checkbox.checked);
-    editeButton.disabled = checkbox.checked;
-    saveTodos();
-  });
-
-  // Edite Functonality
-  editeButton.addEventListener("click", (e) => {
-    inputFieldInList.disabled = !inputFieldInList.disabled;
-    if (!inputFieldInList.disabled) {
-      inputFieldInList.focus();
-    }
-    saveTodos();
-  });
-
-  inputFieldInList.addEventListener("keydown", (e) => {
-    if (e.key == "Enter") {
-      inputFieldInList.disabled = ture;
-    }
-    saveTodos();
-  });
-
-  // Delete Functonality
-  deletButton.addEventListener("click", (e) => {
-    todoList.removeChild(listItem);
-    saveTodos();
-  });
-  // Priority
-  prioritySelect.addEventListener("change", () => {
-    // for Early work
-    sortTodosByPriority();
-    saveTodos();
-  });
+  setEventListeners(listItem, id);
 
   return listItem;
 }
 
+function setEventListeners(item, id) {
+  const [checkbox, editeButton, deletButton, inputFieldInList, prioritySelect] =
+    [
+      item.querySelector("input[type=checkbox]"),
+      item.querySelector(".edit-btn"),
+      item.querySelector(".delete-btn"),
+      item.querySelector("input[type=text]"),
+      item.querySelector(".priority-select"),
+    ];
+  // Event Listeners
+  checkbox.addEventListener("click", checkboxFunction);
+  editeButton.addEventListener("click", editeButtonFunction);
+  deletButton.addEventListener("click", deletButtonFunction);
+  inputFieldInList.addEventListener("keydown",(e)=>e.key=="Enter"&& editeButton());
+  prioritySelect.addEventListener("change", prioritySelectFunction);
 
+    // Event handlers
 
-TodoInput.addEventListener('keydown',(e)=>{
-  if(e.key=="Enter"){
-    let value = e.target.value.trim();
-    if (value == "") {
-      alert("Please Enter a Value");
-      return;
+  // Checkbox Function
+  async function checkboxFunction(e) {
+    try {
+      await axios.patch(`/api/v1/tasks/${id}`, {
+        completed: checkbox.checked,
+      });
+      item.classList.toggle("complete", checkbox.checked);
+      item.classList.toggle("incomplete", !checkbox.checked);
+      editeButton.disabled = checkbox.checked;
+    } catch (error) {
+      console.log(error);
     }
-  
-    let listItem = createTodoItem(value);
-    todoList.appendChild(listItem);
-    TodoInput.value = "";
-    saveTodos();
   }
-})
 
+  // Edite Functonality
+  async function editeButtonFunction(e) {
+    if (!inputFieldInList.disabled) {
+      try {
+        // console.log(inputFieldInList.value);
+        const data = await axios.patch(
+          `/api/v1/tasks/${id}`,
+          {
+            value: inputFieldInList.value,
+          }
+        );
+        
+        inputFieldInList.disabled = true;
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      inputFieldInList.disabled = false;
+      inputFieldInList.focus();
+    }
+  }
 
+  // Delete Functonality
+  async function deletButtonFunction(e) {
+    try {
+      await axios.delete(`/api/v1/tasks/${id}`);
+      todoList.removeChild(item);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  // Priority
+  async function prioritySelectFunction (e){
+    try {
+      await axios.patch(`/api/v1/tasks/${id}`, {
+        priority: prioritySelect.value,
+      });
+      sortTodosByPriority();
+    } catch (error) {
+      console.log(error);
+    }
+    // for Early work
+  }
+}
 
+async function LoadTodos() {
+  try {
+    let data = await axios.get("/api/v1/tasks");
+    let todos = data.data.tasks;
+    todos.forEach((list) => {
+      let listItem = createTodoItem(
+        list.value,
+        list.completed == true ? "complete" : "incomplete",
+        list.priority,
+        list._id
+      );
+      todoList.appendChild(listItem);
+    });
+    sortTodosByPriority();
+  } catch (error) {
+    console.log(error);
+  }
+}
 
+// Sort todos
 function sortTodosByPriority() {
   const todosArray = Array.from(todoList.children);
   todosArray.sort((a, b) => {
@@ -131,33 +177,6 @@ function sortTodosByPriority() {
   // console.log(todosArray[0]);
 }
 
-
-
-function saveTodos() {
-  let todos = [];
-  todoList.querySelectorAll("li").forEach((list) => {
-    let value = list.querySelector("input[type=text]").value;
-    let status = list.classList.contains("complete")
-      ? "complete"
-      : "incomplete";
-    let prioritie = list.querySelector("select").value;
-    todos.push({ value, status, prioritie });
-  });
-  localStorage.setItem("todos", JSON.stringify(todos));
-}
-
-
-
-function LoadTodos() {
-  let todos = JSON.parse(localStorage.getItem("todos")) || [];
-  todos.forEach((list) => {
-    let listItem = createTodoItem(list.value, list.status, list.priority);
-    todoList.appendChild(listItem);
-  });
-}
-
-
-
 // Filter Buttons
 let filterButtons = Array.from(document.querySelectorAll(".Filter-Btn button"));
 filterButtons.forEach((button) => {
@@ -166,28 +185,6 @@ filterButtons.forEach((button) => {
   button.classList.toggle("inactive", dataType !== "all");
   button.addEventListener("click", (e) => {
     const targetType = e.target.getAttribute("data-type");
-    // let ListItem = Array.from(todoList.querySelectorAll("li"));
-    // console.log(ListItem);
-
-    // if (e.target.className != "active") {
-    //   e.target.classList.replace("inactive", "active");
-
-    //   filterButtons.forEach((Element) => {
-    //     let targetElementAttribute = e.target.getAttribute("data-type");
-    //     if (Element.getAttribute("data-type") != targetElementAttribute) {
-    //       Element.classList.replace("active", "inactive");
-    //       ListItem.forEach((element) => {
-    //         if (targetElementAttribute == "all") {
-    //           element.style.display = "flex";
-    //         } else if (element.className == targetElementAttribute) {
-    //           element.style.display = "flex";
-    //         } else {
-    //           element.style.display = "none";
-    //         }
-    //       });
-    //     }
-    //   });
-    // }
     filterButtons.forEach((btn) => {
       btn.classList.toggle("active", btn === e.target);
       btn.classList.toggle("inactive", btn !== e.target);
@@ -201,37 +198,10 @@ filterButtons.forEach((button) => {
   });
 });
 
-
-
-
-searchInput.addEventListener("input", (e) => {
-  let searchValue = searchInput.value.trim();
-  // console.log('aa')
-  // if(searchValue==''){
-  //   alert('Enter Some Text');
-  //   return;
-  // }
-  let valueArray = searchValue.split("");
-  let todos = todoList.querySelectorAll("li");
-  let flag = true;
-  // valueArray.forEach(char=>{
-  //   todos.querySelector().forEach(el=>{
-
-  //   })
-  // })
-  todos.forEach((el) => {
-    let value = el.querySelector("input[type=text]").value;
-    if (searchValue == "" || value.includes(searchValue)) {
-      el.style.display = "flex";
-      return;
-    }
-    if (!value.includes(searchValue)) {
-      el.style.display = "none";
-      return;
-    }
+function searchInputFunction(e) {
+  let searchValue = searchInput.value.trim().toLowerCase();
+  todoList.querySelectorAll("li").forEach((item) => {
+    let value = item.querySelector("input[type=text]").value.toLowerCase();
+    item.style.display = value.includes(searchValue) ? "flex" : "none";
   });
-  // todos.forEach((todo)=>{
-  //   if(todo.querySelector('input[type=text]').split(''))
-  // });
-  // console.log(valueArray);
-});
+}
